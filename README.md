@@ -15,7 +15,9 @@ The library is designed to handle high-volume logging scenarios where traditiona
 - **Flexible Configuration**: Support for multiple log targets and filtering
 - **Environment Integration**: Compatible with standard RUST_LOG environment variable
 - **Module-level Filtering**: Configure log levels per module
-- **Multiple Output Targets**: Console, file, and other outputs supported
+- **Multiple Output Targets**: Console (stdout/stderr), file, and other outputs supported
+- **Timestamp Formatting**: Automatic timestamp with millisecond precision
+- **Standard Compliant**: Implements the popular `log` crate traits
 
 ## Installation
 
@@ -33,13 +35,15 @@ log = "0.4"
 
 ```rust
 use log::info;
-use grlog::{init, builder};
+use grlog::init;
 
 fn main() {
-    // Initialize with default settings
+    // Initialize with default settings (logs to stderr, level info)
     init();
     
     info!("This is an info message!");
+    log::warn!("This is a warning!");
+    log::error!("This is an error!");
 }
 ```
 
@@ -55,6 +59,7 @@ fn main() {
     builder
         .filter_level(log::LevelFilter::Debug)
         .filter_module("hyper", log::LevelFilter::Info)
+        .filter_module("my_crate::network", log::LevelFilter::Trace)
         .target(Target::Stdout)
         .buffer_size(2048);
     
@@ -66,6 +71,28 @@ fn main() {
 }
 ```
 
+### Logging to a File
+
+```rust
+use log::info;
+use grlog::{builder, Target};
+use std::path::PathBuf;
+
+fn main() {
+    let mut log_path = PathBuf::from("/tmp");
+    log_path.push("app.log");
+    
+    let mut builder = builder();
+    builder
+        .target(Target::File(log_path))
+        .filter_level(log::LevelFilter::Info);
+    
+    builder.init().unwrap();
+    
+    info!("This will be written to the file!");
+}
+```
+
 ### Using Environment Variables
 
 ```rust
@@ -73,8 +100,10 @@ use grlog::init_from_env;
 
 fn main() {
     // Initialize from RUST_LOG environment variable
-    // Example: RUST_LOG=debug,my_module=trace cargo run
+    // Example: RUST_LOG=debug,cargo=info,my_module=trace cargo run
     init_from_env();
+    
+    log::info!("This is an info message!");
 }
 ```
 
@@ -85,6 +114,18 @@ fn main() {
 - **Module Filters**: Set different log levels for different modules
 - **Buffer Size**: Configure the size of the async channel buffer
 
+### Log Format
+
+All log messages follow this format:
+```
+YYYY-MM-DD HH:MM:SS.mmm LEVEL [target] message
+```
+
+Example:
+```
+2023-05-14 10:30:45.123 INFO [my_app] Application started successfully
+```
+
 ## Architecture
 
 The core of `grlog` is built around:
@@ -92,7 +133,8 @@ The core of `grlog` is built around:
 1. **Gorust GMP Runtime**: Provides Go-like concurrency with goroutines
 2. **Async Backend**: Uses channels for non-blocking message passing
 3. **Log Writer Interface**: Pluggable writers for different output targets
-4. **Formatter**: Customizable log message formatting
+4. **Formatter**: Standardized log message formatting with timestamps
+5. **Builder Pattern**: Flexible configuration API similar to env_logger
 
 The architecture ensures that even if the logging backend is temporarily slow, your application continues to run without blocking.
 
@@ -104,6 +146,11 @@ By leveraging gorust's GMP (Goroutine, Monitor, Processor) model, `grlog` provid
 - Non-blocking message passing through channels
 - Minimal overhead during log emission
 - Efficient batching and buffering mechanisms
+- Thread-safe concurrent logging from multiple application threads
+
+## Comparison with Other Loggers
+
+Unlike traditional Rust loggers that typically write synchronously to output streams, `grlog` uses an asynchronous approach that separates the act of requesting a log from the actual writing. This prevents I/O bottlenecks from affecting your application's performance.
 
 ## License
 
@@ -112,3 +159,13 @@ Licensed under MIT license ([LICENSE](LICENSE) or http://opensource.org/licenses
 ## Contributing
 
 We welcome contributions! Please feel free to submit a Pull Request. For bug reports or feature requests, open an issue on GitHub.
+
+## Changelog
+
+### v0.1.0
+- Initial release
+- Asynchronous logging using gorust GMP runtime
+- Support for stdout, stderr and file output
+- Module-specific log level filtering
+- Environment variable configuration support
+- Timestamped log entries with millisecond precision
