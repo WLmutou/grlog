@@ -1,0 +1,19 @@
+[package]
+name = "grlog"
+version = "0.1.0"
+edition = "2021"
+authors = ["lijun <1489573464@qq.com>"]
+description = "A high-performance async logging library based on gorust GMP runtime"
+license = "MIT"
+homepage = "https://github.com/WLmutou/grlog"
+repository = "https://github.com/WLmutou/grlog"
+documentation = "https://docs.rs/grlog"
+readme = "README.md"
+keywords = ["logging", "async", "gmp", "gorust", "performance"]
+categories = ["development-tools::debugging", "asynchronous"]
+
+[dependencies]
+#gorust = { path = "../gorust" }
+gorust = "0.1.6" 
+log = "0.4"
+chrono = "0.4"
