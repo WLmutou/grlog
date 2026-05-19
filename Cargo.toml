@@ -13,7 +13,6 @@ keywords = ["logging", "async", "gmp", "gorust", "performance"]
 categories = ["development-tools::debugging", "asynchronous"]
 
 [dependencies]
-#gorust = { path = "../gorust" }
-gorust = "0.1.6" 
+gorust = "0.1.8" 
 log = "0.4"
 chrono = "0.4"
