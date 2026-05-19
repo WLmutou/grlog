@@ -1,4 +1,4 @@
-use log::Record;
+use crate::level::Record;
 use chrono::Local;
 
 /// 格式化日志消息
@@ -16,7 +16,7 @@ pub fn format_log_message(record: &Record) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log::{Level, Metadata, Record};
+    use crate::level::{Level, Metadata, Record};
 
     #[test]
     fn test_format_log_message() {

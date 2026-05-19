@@ -17,7 +17,7 @@ The library is designed to handle high-volume logging scenarios where traditiona
 - **Module-level Filtering**: Configure log levels per module
 - **Multiple Output Targets**: Console (stdout/stderr), file, and other outputs supported
 - **Timestamp Formatting**: Automatic timestamp with millisecond precision
-- **Standard Compliant**: Implements the popular `log` crate traits
+- **Self-contained**: No external logging dependencies required
 
 ## Installation
 
@@ -26,7 +26,6 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 grlog = "0.1.0"
-log = "0.4"
 ```
 
 ## Usage
@@ -34,32 +33,30 @@ log = "0.4"
 ### Basic Usage
 
 ```rust
-use log::info;
-use grlog::init;
+use grlog::{init, info, debug, warn, error};
 
 fn main() {
     // Initialize with default settings (logs to stderr, level info)
     init();
     
     info!("This is an info message!");
-    log::warn!("This is a warning!");
-    log::error!("This is an error!");
+    warn!("This is a warning!");
+    error!("This is an error!");
 }
 ```
 
 ### Advanced Configuration
 
 ```rust
-use log::{info, debug, warn};
-use grlog::{builder, Target};
+use grlog::{builder, Target, LevelFilter};
 
 fn main() {
     // Create a custom logger with specific settings
     let mut builder = builder();
     builder
-        .filter_level(log::LevelFilter::Debug)
-        .filter_module("hyper", log::LevelFilter::Info)
-        .filter_module("my_crate::network", log::LevelFilter::Trace)
+        .filter_level(LevelFilter::Debug)
+        .filter_module("hyper", LevelFilter::Info)
+        .filter_module("my_crate::network", LevelFilter::Trace)
         .target(Target::Stdout)
         .buffer_size(2048);
     
@@ -74,8 +71,7 @@ fn main() {
 ### Logging to a File
 
 ```rust
-use log::info;
-use grlog::{builder, Target};
+use grlog::{builder, Target, info};
 use std::path::PathBuf;
 
 fn main() {
@@ -85,7 +81,7 @@ fn main() {
     let mut builder = builder();
     builder
         .target(Target::File(log_path))
-        .filter_level(log::LevelFilter::Info);
+        .filter_level(LevelFilter::Info);
     
     builder.init().unwrap();
     
@@ -103,7 +99,7 @@ fn main() {
     // Example: RUST_LOG=debug,cargo=info,my_module=trace cargo run
     init_from_env();
     
-    log::info!("This is an info message!");
+    info!("This is an info message!");
 }
 ```
 

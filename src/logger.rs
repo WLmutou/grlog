@@ -1,10 +1,10 @@
-use log::{LevelFilter, Metadata, Record, Log};
+use crate::level::{LevelFilter, Metadata, Record, Log};
 use std::collections::HashMap;
 use std::sync::Arc;
 use crate::backend::AsyncLogBackend;
 use crate::formatter::format_log_message;
 
-/// GrLogger - 实现 log::Log trait
+/// GrLogger - 实现 Log trait
 pub struct GrLogger {
     level: LevelFilter,
     module_levels: HashMap<String, LevelFilter>,
@@ -27,10 +27,10 @@ impl GrLogger {
     fn should_log(&self, metadata: &Metadata) -> bool {
         // 检查模块级别的日志级别
         if let Some(module_level) = self.module_levels.get(metadata.target()) {
-            return metadata.level() <= *module_level;
+            return module_level.is_enabled(metadata.level());
         }
         // 检查全局日志级别
-        metadata.level() <= self.level
+        self.level.is_enabled(metadata.level())
     }
 }
 
@@ -54,7 +54,7 @@ impl Log for GrLogger {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log::Level;
+    use crate::level::Level;
     use std::sync::Mutex;
 
     struct MockWriter {

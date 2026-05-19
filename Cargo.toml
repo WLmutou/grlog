@@ -14,5 +14,4 @@ categories = ["development-tools::debugging", "asynchronous"]
 
 [dependencies]
 gorust = "0.1.8" 
-log = "0.4"
 chrono = "0.4"

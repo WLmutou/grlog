@@ -1,4 +1,4 @@
-use log::{LevelFilter, SetLoggerError};
+use crate::level::LevelFilter;
 use std::collections::HashMap;
 use std::sync::Arc;
 use crate::Target;
@@ -86,8 +86,8 @@ impl LoggerBuilder {
             backend,
         );
 
-        log::set_boxed_logger(Box::new(logger))?;
-        log::set_max_level(self.level);
+        set_boxed_logger(Box::new(logger))?;
+        set_max_level(self.level);
 
         Ok(())
     }
@@ -115,6 +115,34 @@ fn parse_level(level: &str) -> Option<LevelFilter> {
         "off" => Some(LevelFilter::Off),
         _ => None,
     }
+}
+
+/// 设置全局日志器错误类型
+#[derive(Debug)]
+pub struct SetLoggerError;
+
+impl std::fmt::Display for SetLoggerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "attempted to set a logger after the logging system was already initialized")
+    }
+}
+
+impl std::error::Error for SetLoggerError {}
+
+use std::sync::OnceLock;
+
+pub(crate) static GLOBAL_LOGGER: OnceLock<Box<dyn crate::level::Log>> = OnceLock::new();
+pub(crate) static MAX_LEVEL: OnceLock<LevelFilter> = OnceLock::new();
+
+fn set_boxed_logger(logger: Box<dyn crate::level::Log>) -> Result<(), SetLoggerError> {
+    if GLOBAL_LOGGER.set(logger).is_err() {
+        return Err(SetLoggerError);
+    }
+    Ok(())
+}
+
+fn set_max_level(level: LevelFilter) {
+    let _ = MAX_LEVEL.set(level);
 }
 
 /// 使用默认配置初始化日志（输出到 stderr，级别 info）
