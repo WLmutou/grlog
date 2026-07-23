@@ -168,13 +168,12 @@ dependencies = [
 [[package]]
 name = "gorust"
 version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e2f7be41548a010ae70194f92adeeff9b12db8cb15cefeb21465cd1d9de79d0"
 dependencies = [
  "ctrlc",
  "env_logger",
  "go-macros",
  "lazy_static",
+ "libc",
  "log",
  "mio",
  "num_cpus",
@@ -183,7 +182,7 @@ dependencies = [
 
 [[package]]
 name = "grlog"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "gorust",

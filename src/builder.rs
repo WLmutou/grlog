@@ -18,7 +18,7 @@ impl LoggerBuilder {
     pub fn new() -> Self {
         Self {
             target: Target::default(),
-            level: LevelFilter::Info,
+            level: LevelFilter::Debug,
             module_levels: HashMap::new(),
             buffer_size: 1024,
         }
@@ -49,6 +49,12 @@ impl LoggerBuilder {
     /// 设置日志输出目标
     pub fn target(&mut self, target: Target) -> &mut Self {
         self.target = target;
+        self
+    }
+
+    /// 设置多个日志输出目标（同时输出到多个目标，如同时输出到控制台和文件）
+    pub fn targets(&mut self, targets: Vec<Target>) -> &mut Self {
+        self.target = Target::Multi(targets);
         self
     }
 
@@ -145,7 +151,7 @@ fn set_max_level(level: LevelFilter) {
     let _ = MAX_LEVEL.set(level);
 }
 
-/// 使用默认配置初始化日志（输出到 stderr，级别 info）
+/// 使用默认配置初始化日志（输出到 stdout，级别 debug）
 pub fn init() {
     LoggerBuilder::new().try_init();
 }
@@ -179,7 +185,7 @@ mod tests {
     #[test]
     fn test_builder_default() {
         let builder = LoggerBuilder::new();
-        assert_eq!(builder.level, LevelFilter::Info);
+        assert_eq!(builder.level, LevelFilter::Debug);
         assert_eq!(builder.buffer_size, 1024);
         assert!(builder.module_levels.is_empty());
     }

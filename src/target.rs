@@ -9,11 +9,13 @@ pub enum Target {
     Stderr,
     /// 文件输出
     File(PathBuf),
+    /// 同时输出到多个目标
+    Multi(Vec<Target>),
 }
 
 impl Default for Target {
     fn default() -> Self {
-        Target::Stderr
+        Target::Stdout
     }
 }
 
@@ -24,7 +26,7 @@ mod tests {
     #[test]
     fn test_default_target() {
         let target = Target::default();
-        assert!(matches!(target, Target::Stderr));
+        assert!(matches!(target, Target::Stdout));
     }
 
     #[test]
@@ -32,10 +34,12 @@ mod tests {
         let stdout = Target::Stdout;
         let stderr = Target::Stderr;
         let file = Target::File(PathBuf::from("/tmp/test.log"));
+        let multi = Target::Multi(vec![Target::Stdout, Target::File(PathBuf::from("/tmp/test.log"))]);
 
         assert!(matches!(stdout, Target::Stdout));
         assert!(matches!(stderr, Target::Stderr));
         assert!(matches!(file, Target::File(_)));
+        assert!(matches!(multi, Target::Multi(_)));
     }
 
     #[test]
@@ -43,5 +47,9 @@ mod tests {
         let target = Target::File(PathBuf::from("/tmp/test.log"));
         let cloned = target.clone();
         assert!(matches!(cloned, Target::File(_)));
+
+        let multi = Target::Multi(vec![Target::Stdout, Target::Stderr]);
+        let cloned_multi = multi.clone();
+        assert!(matches!(cloned_multi, Target::Multi(_)));
     }
 }

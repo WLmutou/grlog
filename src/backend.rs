@@ -1,4 +1,5 @@
-use gorust::{go, channel};
+use gorust::{go, channel, Runtime};
+use gorust::channel::RecvError;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use crate::writer::LogWriter;
@@ -11,6 +12,9 @@ pub struct AsyncLogBackend {
 
 impl AsyncLogBackend {
     pub fn new(writer: Box<dyn LogWriter>, buffer_size: usize) -> Self {
+        // 确保 gorust 运行时已初始化
+        Runtime::init();
+
         let (tx, rx) = channel::new_with_capacity(buffer_size);
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
@@ -28,21 +32,25 @@ impl AsyncLogBackend {
         writer: Box<dyn LogWriter>,
         running: Arc<AtomicBool>,
     ) {
-        while running.load(Ordering::Relaxed) {
-            // 同时检查本地 running 标志和 gorust scheduler 状态
-            // 确保 Ctrl-C 时能正常退出
-            if !gorust::scheduler::Scheduler::is_running() {
-                running.store(false, Ordering::Relaxed);
+        // 主循环：使用阻塞 recv() 等待消息，线程在无消息时 park 不消耗 CPU
+        // 通过 close() 唤醒 receiver 退出，确保 Ctrl-C 时也能正常退出
+        loop {
+            // 检查 running 标志和 gorust runtime 状态
+            if !running.load(Ordering::Relaxed) {
                 break;
             }
-            // 使用 try_recv 避免阻塞，确保能检查 running 标志
-            match rx.try_recv() {
+            if gorust::Runtime::is_shutting_down() {
+                break;
+            }
+
+            match rx.recv() {
                 Ok(msg) => {
                     writer.write(&msg);
                 }
-                Err(_) => {
-                    // 通道为空或断开，短暂休眠后继续检查 running
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                Err(RecvError::Disconnected) => break,
+                Err(RecvError::Empty) => {
+                    // 阻塞 recv 正常情况下不会返回 Empty，此处仅作防御
+                    std::thread::sleep(std::time::Duration::from_millis(1));
                 }
             }
         }
@@ -57,12 +65,14 @@ impl AsyncLogBackend {
     }
 
     pub fn send(&self, msg: String) {
-        // 使用 try_send 避免阻塞 goroutine，确保 Ctrl-C 能正常退出
+        // 使用 try_send 避免阻塞调用方，确保高吞吐
         let _ = self.tx.try_send(msg);
     }
 
     pub fn shutdown(&self) {
         self.running.store(false, Ordering::Relaxed);
+        // 关闭通道，唤醒 receiver 使其立即退出
+        self.tx.close();
     }
 }
 

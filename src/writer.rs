@@ -34,7 +34,7 @@ impl LogWriter for StderrWriter {
 
 /// 文件写入器
 pub struct FileWriter {
-    file: std::sync::Mutex<std::io::BufWriter<std::fs::File>>,
+    file: std::sync::Mutex<std::fs::File>,
 }
 
 impl FileWriter {
@@ -47,20 +47,45 @@ impl FileWriter {
             .append(true)
             .open(path)?;
         Ok(Self {
-            file: std::sync::Mutex::new(std::io::BufWriter::new(file)),
+            file: std::sync::Mutex::new(file),
         })
     }
 }
 
 impl LogWriter for FileWriter {
     fn write(&self, msg: &str) {
-        if let Ok(mut f) = self.file.try_lock() {
+        if let Ok(mut f) = self.file.lock() {
             let _ = f.write_all(msg.as_bytes());
+            let _ = f.flush();
         }
     }
     fn flush(&self) {
-        if let Ok(mut f) = self.file.try_lock() {
+        if let Ok(mut f) = self.file.lock() {
             let _ = f.flush();
+        }
+    }
+}
+
+/// 多目标写入器：同时写入多个 LogWriter
+pub struct MultiWriter {
+    writers: Vec<Box<dyn LogWriter>>,
+}
+
+impl MultiWriter {
+    pub fn new(writers: Vec<Box<dyn LogWriter>>) -> Self {
+        Self { writers }
+    }
+}
+
+impl LogWriter for MultiWriter {
+    fn write(&self, msg: &str) {
+        for writer in &self.writers {
+            writer.write(msg);
+        }
+    }
+    fn flush(&self) {
+        for writer in &self.writers {
+            writer.flush();
         }
     }
 }
@@ -72,6 +97,13 @@ pub fn create_writer(target: &crate::Target) -> Box<dyn LogWriter> {
         crate::Target::Stderr => Box::new(StderrWriter),
         crate::Target::File(path) => {
             Box::new(FileWriter::new(path).expect("Failed to open log file"))
+        }
+        crate::Target::Multi(targets) => {
+            let writers: Vec<Box<dyn LogWriter>> = targets
+                .iter()
+                .map(create_writer)
+                .collect();
+            Box::new(MultiWriter::new(writers))
         }
     }
 }
