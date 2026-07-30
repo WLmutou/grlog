@@ -24,6 +24,9 @@ impl AsyncLogBackend {
             Self::log_writer_loop(rx, writer, running_clone);
         });
 
+        // 刷新协程创建缓冲区，确保日志写入协程立即加入调度队列
+        gorust::flush_go_batch();
+
         Self { tx, running }
     }
 

@@ -15,4 +15,5 @@ fn main() {
     let user = "Alice";
     let count = 42;
     info!("User {} logged in {} times", user, count);
+    
 }
